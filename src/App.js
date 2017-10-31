@@ -25,8 +25,11 @@ class App extends Component {
             </textarea>
 
             <pre className="overley" dangerouslySetInnerHTML={
-                {__html: this.state.value.replace(/\n/g, "<br/>").replace(/phong/g, '<a href="#" class="mention">phong</a>')}
-              } />
+                {__html: this.state.value.replace(/\n/g, "<br/>")
+                  .replace(/\[\[(.+?)\]\]/g, (m, tk) => `<a href="#" class="mention">${tk}</a>`)
+                
+                // .replace(/phong/g, '<a href="#" class="mention">phong</a>')
+            }} />
             
             
           </div>
