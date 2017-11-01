@@ -28,10 +28,15 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   outline: none;
   padding: 0;
-  background: transparent
+  background: transparent;
+  color: transparent;
+  caret-color: black;
+  z-index: 2;
 }
 
+
 .metionsWrap .overley {
+  z-index: 1;
   position: absolute;
   top: 0; 
   left: 0;
@@ -42,7 +47,7 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   text-align: left; 
   background: transparent; 
-  pointer-events: none;
+  /* pointer-events: none; */
   margin: 0;
   padding: 0;
   
@@ -50,7 +55,7 @@ body {
 .metionsWrap .overley {
   /* background-color: lightblue; */
   /* color:rgb(18, 161, 18); */
-  color: transparent;
+  /* color: #000000; */
   margin: 0;
   padding: 0;
   white-space: pre-wrap;       /* Since CSS 2.1 */
@@ -60,6 +65,8 @@ body {
   word-wrap: break-word;   
   white-space: pre-wrap;
 }
+
+
 .metionsWrap .overley .mention {
   color: red;
   /* pointer-events: all; */
