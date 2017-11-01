@@ -7,12 +7,18 @@ body {
   box-sizing: border-box;
 }
 
-.metionsWrap {
-  width: 500px;
-  height: 200px;
-  border: 1px solid lightgray;
+.fozg-mentions {
+  background: #efefef;
+  padding: 10px;
+  width: 600px;
+  height: 120px;
   margin: auto;
-  position: relative;
+}
+.metionsWrap {
+  width: 100%;
+  height: 100%;
+  /* border: 1px solid lightgray; */
+  position: relative;  
 }
 
 .metionsWrap textarea {
@@ -31,12 +37,12 @@ body {
   background: transparent;
   color: transparent;
   caret-color: black;
-  z-index: 2;
+  z-index: 1;
 }
 
 
 .metionsWrap .overley {
-  z-index: 1;
+  z-index: 2;
   position: absolute;
   top: 0; 
   left: 0;
@@ -47,7 +53,7 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   text-align: left; 
   background: transparent; 
-  /* pointer-events: none; */
+  pointer-events: none;
   margin: 0;
   padding: 0;
   
@@ -68,7 +74,37 @@ body {
 
 
 .metionsWrap .overley .mention {
-  color: red;
+  color: #4caf50;
   /* pointer-events: all; */
   
+}
+
+.metionsWrap .overley .typing {
+  color: #2196f3;
+  /* pointer-events: all; */
+  
+}
+
+
+
+.suggestsWrap {
+  position: absolute;
+  z-index: 14;
+  width: 250px; 
+  border-radius: 5px; 
+  border: 1px solid lightgray;
+  background-color: #fff; 
+  font-size: 12px;
+  overflow: hidden;
+  pointer-events: all;  
+}
+.suggestsWrap .item {
+  padding: 5px 15px; 
+  border-bottom: 1px solid #efefef;
+  cursor: pointer
+}
+
+.suggestsWrap .item:hover { 
+  background: #efefef; 
+
 }
