@@ -1,5 +1,12 @@
 import React, { Component } from 'react';
 
+const KEY_ENTER = 13;
+const KEY_UP = 38;
+const KEY_DOWN = 40;
+const KEY_BACKSPACE = 8;
+const KEY_DELETE = 46;
+
+const KEY_MENTION_SHIFT = 50; //@
 
 class App extends Component {
   state = {
@@ -9,6 +16,8 @@ class App extends Component {
       left: 0,
       top: 0
     },
+    suggestSeletedIndex: 0,
+    suggests: suggestMock,
     typingIndex: -1
   }
 
@@ -36,44 +45,89 @@ class App extends Component {
       blocks.push({ text: plantText })
     }
     // console.log(blocks)
-    return blocks
+    return blocks;
   }
 
-
-
   componentDidMount() {
-    this.refs.textarea.addEventListener('keydown', event => {
-      var selectionStart = event.target.selectionStart;
-      var selectionEnd = event.target.selectionEnd;
-      if (selectionEnd === selectionStart) {
-        if (event.keyCode === 8) {
-          var isRemoveMentionIndex = -1;
-          this.state.mentions.map((m, idx) => {
-            if (m.offset < selectionStart && selectionStart <= (m.offset + m.length + 1)) {
-              isRemoveMentionIndex = idx;
-              console.log('remove mention: ', m, { isRemoveMentionIndex })
-            }
-          })
-          if (isRemoveMentionIndex > -1) {
-            // this.removeMention(isRemoveMention)
-            var mentionTyping = this.state.mentions[isRemoveMentionIndex];
-            if (mentionTyping.length - 1 !== 0) {
-              this.updateMentionTyping({ data: null, offset: mentionTyping.offset, length: mentionTyping.length - 1 });
-            } else {
-              this.removeMention(isRemoveMentionIndex);
-            }
-          }
-        }
+    this.refs.textarea.addEventListener('keydown', e => this._handleKeyDown(e))
+  }
 
-        if (event.shiftKey && event.keyCode === 50 && this.state.typingIndex !== -1) {
-          this.removeMention(this.state.typingIndex)        
-        }
+  _handleKeyDown = event => {
+    var selectionStart = event.target.selectionStart;
+    var selectionEnd = event.target.selectionEnd;
+    if (selectionEnd === selectionStart) {
+      switch(event.keyCode) {
+        case KEY_BACKSPACE: this.__handleBackspace(selectionStart, selectionEnd); break;
+        case KEY_UP: this.__handlePressUp(event); break;
+        case KEY_DOWN: this.__handlePressDown(event); break;
+        case KEY_ENTER: this.__handlePressEnter(event, selectionStart); break;
       }
-      if (this.state.typingIndex !== -1 && (event.keyCode === 32 || event.keyCode === 13)) { 
-        console.log('clear typing mention')
-        this.removeMention(this.state.typingIndex)
+
+      if (event.shiftKey && event.keyCode === 50 && this.state.typingIndex !== -1) {
+        this.removeMention(this.state.typingIndex)        
       }
-    })
+
+      // if (event.ctrlKey) {
+      //   this.applyMention('@Dao Hong Phong', selectionStart);
+      // }
+    }
+    if (this.state.typingIndex !== -1 && (event.keyCode === 32)) { 
+      console.log('clear typing mention')
+      this.removeMention(this.state.typingIndex)
+    }
+  }
+
+  __handleBackspace = (selectionStart, selectionEnd) => {
+    var isRemoveMentionIndex = -1;
+    this.state.mentions.map((m, idx) => {
+      if (m.offset < selectionStart && selectionStart <= (m.offset + m.length)) {
+        isRemoveMentionIndex = idx;
+        // console.log('remove mention: ', m, { isRemoveMentionIndex })
+        // this.removeMention(isRemoveMentionIndex);              
+      }
+    });
+    if (isRemoveMentionIndex > -1) {
+      // this.removeMention(isRemoveMention)
+      var mention = this.state.mentions[isRemoveMentionIndex];
+      console.log({mention},  this.state.mentions);
+      if (mention.length - 1 !== 0 && mention.typing) {
+        this.updateMentionTyping({ data: null, offset: mention.offset, length: mention.length - 1 });
+      } else {
+        this.removeMention(isRemoveMentionIndex);
+        this.removeMentionText(mention.offset, mention.length - 1);
+        setTimeout(() => {
+          this.refs.textarea.selectionStart = mention.offset;
+          this.refs.textarea.selectionEnd = mention.offset;
+        }, 200)
+      }
+    }
+  }
+
+  __handlePressUp = (event) => {
+    if (this.state.typingIndex === -1) return;
+    event.preventDefault();
+
+    const length = this.state.suggests.length;
+    var suggestSeletedIndex = (this.state.suggestSeletedIndex - 1 + length) % length;
+    this.setState({suggestSeletedIndex})
+    
+  }
+
+  __handlePressDown = (event) => {
+    if (this.state.typingIndex === -1) return;
+    event.preventDefault();
+
+    const length = this.state.suggests.length;
+    var suggestSeletedIndex = (this.state.suggestSeletedIndex + 1) % length;
+
+    this.setState({suggestSeletedIndex})
+  }
+
+  __handlePressEnter = (event, selectionStart) => {
+    if (this.state.typingIndex === -1) return;
+    event.preventDefault();
+    this.applyMention(this.state.suggests[this.state.suggestSeletedIndex].fullname, selectionStart);
+    
   }
 
   onInput = (event) => {
@@ -95,7 +149,12 @@ class App extends Component {
         if (selectionStart > (mentionTyping.offset + mentionTyping.length + 1)) {
           this.removeMention(this.state.typingIndex);
         }
+      } else {
+        console.log('update mention offset')
+        if (this.state.mentions.length !== 0) this.updateMentionsOffset(selectionStart);
       }
+    } else {
+
     }
   }
   // a=RegExp(`(?:^|\\s)(\@([^\@*))$`)
@@ -112,9 +171,58 @@ class App extends Component {
   removeMention = (index) => {
     var mentions = [...this.state.mentions];
     mentions.splice(index, 1);
-    this.setState({ mentions, typingIndex: -1 });
+    this.setState({ mentions, typingIndex: -1, suggestSeletedIndex: 0 });
   }
 
+  removeMentionRange = (selectionStart, selectionEnd) => {
+    
+  }
+
+  removeMentionText = (offset, length) => {
+    var text = this.state.value;
+    var value = text.substring(0, offset) +  text.substring(offset + length);
+    this.setState({value})
+  }
+
+  updateMentionsOffset = (offset) => {
+    var mentions = this.state.mentions;
+    var isApply = false;
+    var newMentions = mentions.map((mention, idx) => {
+      if (offset-1 <= mention.offset) {
+        isApply = true;
+        return {...mention, offset: mention.offset + 1};
+      } else {
+        return mention
+      }
+    });
+    if (isApply) {
+      console.log({newMentions})
+      this.setState({mentions: newMentions});
+    }
+  }
+
+  applyMention = (text, selectionStart) => {
+    var mentions = [...this.state.mentions];
+    this.replaceText('@'+text, selectionStart);
+    mentions[this.state.typingIndex] = 
+      { ...mentions[this.state.typingIndex], length: text.length + 1, typing: false }
+    this.setState({ mentions, typingIndex: -1, suggestSeletedIndex: 0 });
+  }
+
+  // replace a word with char index (current caret position)
+  replaceText = (what, index) => {
+    var text = this.state.value;
+    var getStart = (txt, idx) => {
+      if (txt[idx] === ' ' || idx === -1 || txt[idx] === '\n') return idx + 1;
+      return(getStart(txt, idx-1));
+    }
+    var getEnd = (txt, idx) => {
+      if (txt[idx] === ' ' || (idx === txt.length)) return idx;
+      return(getEnd(txt, idx + 1));
+    }
+    this.setState({value:
+      text.substring(0, getStart(text, index)) + what + text.substring(getEnd(text, index-1))});
+  }
 
   onMouseUp = () => {
     // var selObj = window.getSelection();     
@@ -126,12 +234,12 @@ class App extends Component {
   }
 
   render() {
-    const { suggestPosition } = this.state;
+    const { suggestPosition, suggestSeletedIndex, typingIndex } = this.state;
     return (
       <div className="App">
         <header className="App-header">
-
-          <h1 className="App-title">Welcome to React</h1>
+          <h1> </h1>
+          
         </header>
         <div className="App-intro">
           <div className="fozg-mentions">
@@ -142,7 +250,7 @@ class App extends Component {
               >
               </textarea>
 
-              <pre className="overley">
+              <pre className="overley" style={{zIndex: typingIndex === -1 ? 1: 3}}>
                 {/* dangerouslySetInnerHTML={
                   {__html: this.state.value.replace(/\n/g, "<br/>")
                     .replace(/\@(.+?)\s/g, (m, tk) => `<a href="#" class="mention">@${tk}</a> `)
@@ -151,13 +259,10 @@ class App extends Component {
                   block.type !== 'typing' ? (block.type !== "mention" ? <span key={idx}>{block.text}</span> :
                     <a key={idx} href="#" className="mention">{block.text}</a>)
                     : <span key={idx} style={{ position: 'relative' }} className="typing">{block.text}
-                      <RenderSuggest top={20} left={0} />
+                      <RenderSuggest top={20} left={0} suggestSeletedIndex={suggestSeletedIndex} />
                     </span>
                 ))}
               </pre>
-
-
-
             </div>
           </div>
         </div>
@@ -168,12 +273,12 @@ class App extends Component {
 
 export default App;
 
-const RenderSuggest = ({ top, left }) => (
+const RenderSuggest = ({ top, left, suggestSeletedIndex }) => (
   <div style={{ top, left, }}
     className="suggestsWrap"
   >
-    {suggestMock.map(o => (
-      <div key={o.username} className="item">
+    {suggestMock.map((o, idx) => (
+      <div key={o.username} className={"item " + (suggestSeletedIndex === idx && 'active')}>
         <div>{o.fullname}</div>
         <i style={{ fontSize: 10 }}>{o.username}</i>
       </div>

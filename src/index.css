@@ -37,12 +37,12 @@ body {
   background: transparent;
   color: transparent;
   caret-color: black;
-  z-index: 1;
+  z-index: 2;
 }
 
 
 .metionsWrap .overley {
-  z-index: 2;
+  z-index: 1;
   position: absolute;
   top: 0; 
   left: 0;
@@ -75,6 +75,7 @@ body {
 
 .metionsWrap .overley .mention {
   color: #4caf50;
+  text-decoration: none;
   /* pointer-events: all; */
   
 }
@@ -97,14 +98,16 @@ body {
   font-size: 12px;
   overflow: hidden;
   pointer-events: all;  
+  color: gray;
 }
+
 .suggestsWrap .item {
   padding: 5px 15px; 
   border-bottom: 1px solid #efefef;
-  cursor: pointer
+  cursor: pointer !important;
 }
 
-.suggestsWrap .item:hover { 
-  background: #efefef; 
+.suggestsWrap .item:hover, .suggestsWrap .item.active {  
+  background: #ededed; 
 
 }
