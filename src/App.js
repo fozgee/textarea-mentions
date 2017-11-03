@@ -9,6 +9,7 @@ const KEY_DELETE = 46;
 const KEY_MENTION_SHIFT = 50; //@
 
 class App extends Component {
+  lastValue = "";
   state = {
     value: "",
     mentions: [],
@@ -21,10 +22,10 @@ class App extends Component {
     typingIndex: -1
   }
 
-  onChange = (input) => {
-    this.setState({ value: input.target.value })
-    // console.log(this.state.value)
-  }
+  // onChange = (input) => {
+  //   this.setState({ value: input.target.value })
+  //   // console.log(this.state.value)
+  // }
 
   renderContent = (plantText, mentions) => {
     // mentions = [{data, offset, length, typing}]
@@ -44,7 +45,7 @@ class App extends Component {
     } else {
       blocks.push({ text: plantText })
     }
-    // console.log(blocks)
+    console.log({mentions}, {blocks})
     return blocks;
   }
 
@@ -66,10 +67,23 @@ class App extends Component {
       if (event.shiftKey && event.keyCode === 50 && this.state.typingIndex !== -1) {
         this.removeMention(this.state.typingIndex)        
       }
-
       // if (event.ctrlKey) {
       //   this.applyMention('@Dao Hong Phong', selectionStart);
       // }
+    } else {
+      // switch(event.keyCode) {
+      //   case KEY_DELETE :
+      //     this.removeMentionRange(selectionStart, selectionEnd, () => {
+      //       this.updateMentionsOffset(selectionStart, selectionEnd - selectionStart)
+      //     }); 
+          
+      //     break;
+          
+      // }
+
+      setTimeout(() => {
+        console.log(this.state.mentions);
+      }, 1000)
     }
     if (this.state.typingIndex !== -1 && (event.keyCode === 32)) { 
       console.log('clear typing mention')
@@ -101,6 +115,7 @@ class App extends Component {
         }, 200)
       }
     }
+    
   }
 
   __handlePressUp = (event) => {
@@ -131,31 +146,42 @@ class App extends Component {
   }
 
   onInput = (event) => {
+    this.lastValue = this.state.value;
+    this.setState({ value: event.target.value })
+    console.log(event.target.value)
     var selectionStart = event.target.selectionStart;
     // console.log({selectionStart}, event.target.value)
     var selectionEnd = event.target.selectionEnd;
     var value = this.refs.textarea.value;
-    if (selectionEnd === selectionStart) {
-      if (value[selectionStart - 1] === '@' && (value[selectionStart - 2] === ' ' || value[selectionStart - 2] === '\n' || selectionStart === 1)) {
-        this.pushMention({ data: null, offset: selectionStart - 1, length: 1, typing: true }, () => {
-          this.setState({ typingIndex: this.state.mentions.length - 1 })
-        });
-      }
-      if (this.state.typingIndex !== -1) {
-        var mentionTyping = this.state.mentions[this.state.typingIndex];
-        if (selectionStart > mentionTyping.offset && selectionStart <= (mentionTyping.offset + mentionTyping.length + 1)) {
-          this.updateMentionTyping({ data: null, offset: mentionTyping.offset, length: mentionTyping.length + 1 })
-        }
-        if (selectionStart > (mentionTyping.offset + mentionTyping.length + 1)) {
-          this.removeMention(this.state.typingIndex);
-        }
-      } else {
-        console.log('update mention offset')
-        if (this.state.mentions.length !== 0) this.updateMentionsOffset(selectionStart);
-      }
-    } else {
-
+    if (value[selectionStart - 1] === '@' && (value[selectionStart - 2] === ' ' || value[selectionStart - 2] === '\n' || selectionStart === 1)) {
+      this.pushMention({ data: null, offset: selectionStart - 1, length: 1, typing: true }, () => {
+        this.setState({ typingIndex: this.state.mentions.length - 1 })
+      });
     }
+    if (this.state.typingIndex !== -1) {
+      var mentionTyping = this.state.mentions[this.state.typingIndex];
+      if (selectionStart > mentionTyping.offset && selectionStart <= (mentionTyping.offset + mentionTyping.length + 1)) {
+        this.updateMentionTyping({ data: null, offset: mentionTyping.offset, length: mentionTyping.length + 1 })
+      }
+      if (selectionStart > (mentionTyping.offset + mentionTyping.length + 1)) {
+        this.removeMention(this.state.typingIndex);
+      }
+    } else {      
+      
+      if (event.target.value.length < this.lastValue.length) {
+        this.removeMentionRange(
+          selectionStart, selectionStart + this.lastValue.length - event.target.value.length,
+          this.callbackAfterRemoveMentionRange(selectionStart, event.target.value.length - this.lastValue.length)
+        );
+      } else {
+        this.updateMentionsOffset(selectionStart, event.target.value.length - this.lastValue.length)
+      }
+      
+    }
+  }
+
+  callbackAfterRemoveMentionRange = (selectionStart, length) => {
+    this.updateMentionsOffset(selectionStart, length);
   }
   // a=RegExp(`(?:^|\\s)(\@([^\@*))$`)
   pushMention = ({ data, offset, length, typing }, done) => {
@@ -168,14 +194,51 @@ class App extends Component {
     this.setState({ mentions });
   }
 
-  removeMention = (index) => {
+  removeMention = (index, callback) => {
     var mentions = [...this.state.mentions];
-    mentions.splice(index, 1);
-    this.setState({ mentions, typingIndex: -1, suggestSeletedIndex: 0 });
+    if (!Array.isArray(index)) {
+      mentions.splice(index, 1);
+    } else {
+      index.map(i => {
+        if (i !== -1) { mentions.splice(i, 1); }
+      })
+    }
+    this.setState({ mentions, typingIndex: -1, suggestSeletedIndex: 0 }, () => {
+      if (callback) callback();
+    });
   }
 
-  removeMentionRange = (selectionStart, selectionEnd) => {
-    
+  removeMentionRange = (selectionStart, selectionEnd, callback) => {
+    // var mentionStartIdx = 
+    //   this.state.mentions.findIndex(o => ((o.offset + o.length) > selectionStart) && (selectionEnd > selectionStart));
+    // var mentionEndIdx = 
+    //   this.state.mentions.reverse().findIndex(o => ((o.offset + o.length) < selectionEnd) && (selectionStart > (o.offset + o.length)));
+
+    var mentionStartIdx = 
+      this.state.mentions.findIndex(o => (
+        (selectionStart >= o.offset) && (selectionStart <= (o.offset + o.length))
+      ))
+    var mentionEndIdx = 
+      [...this.state.mentions].reverse().findIndex(o => (
+        (selectionEnd <= (o.offset + o.length)) && (selectionEnd >= o.offset)
+      ))
+    if (mentionEndIdx !== -1) mentionEndIdx = this.state.mentions.length - 1 - mentionEndIdx;
+
+    if (mentionStartIdx <= mentionEndIdx && mentionEndIdx !== -1) {
+      // for (var i = mentionStartIdx; i <= mentionEndIdx; i++) {
+      //   var mention = this.state.mentions[i];
+      //   console.log('removed:', mention)
+      //   // this.removeMentionText(mention.offsest, mention.length);
+      //   if (i !== mentionEndIdx) {
+      //     this.removeMention(i);
+      //   } else {
+      //     this.removeMention(i, callback)
+      //   }
+      // }
+      var removeIndexs = [];
+      for (var i = mentionStartIdx; i <= mentionEndIdx; i++) {removeIndexs.push(i)};
+      this.removeMention(removeIndexs, callback)
+    }
   }
 
   removeMentionText = (offset, length) => {
@@ -184,18 +247,19 @@ class App extends Component {
     this.setState({value})
   }
 
-  updateMentionsOffset = (offset) => {
+  updateMentionsOffset = (offset, step = 1) => {
     var mentions = this.state.mentions;
     var isApply = false;
     var newMentions = mentions.map((mention, idx) => {
-      if (offset-1 <= mention.offset) {
+      if (offset - step <= mention.offset) {
         isApply = true;
-        return {...mention, offset: mention.offset + 1};
+        return {...mention, offset: mention.offset + step};
       } else {
         return mention
       }
     });
     if (isApply) {
+      console.log('update mention offset')      
       console.log({newMentions})
       this.setState({mentions: newMentions});
     }
@@ -207,6 +271,7 @@ class App extends Component {
     mentions[this.state.typingIndex] = 
       { ...mentions[this.state.typingIndex], length: text.length + 1, typing: false }
     this.setState({ mentions, typingIndex: -1, suggestSeletedIndex: 0 });
+    console.log('applied:', {mentions})
   }
 
   // replace a word with char index (current caret position)
@@ -244,7 +309,9 @@ class App extends Component {
         <div className="App-intro">
           <div className="fozg-mentions">
             <div className="metionsWrap">
-              <textarea spellCheck={false} value={this.state.value} onChange={text => this.onChange(text)} ref="textarea" rows={10}
+              <textarea spellCheck={false} value={this.state.value}
+                
+                ref="textarea" rows={10}
                 onMouseUp={this.onMouseUp}
                 onInput={this.onInput}
               >
@@ -318,3 +385,4 @@ function getCaretPos(input) {
   }
   return caret_pos;
 }
+
